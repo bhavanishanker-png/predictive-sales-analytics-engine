@@ -1,9 +1,9 @@
 """
-Setup configuration for Predictive Sales Analytics Engine package.
-Allows installation via: pip install -e .
+Dependency metadata for the project (no installable Python package; logic lives in notebooks).
+`pip install -e .` still installs the listed requirements.
 """
 
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name="predictive-sales-analytics-engine",
@@ -11,8 +11,7 @@ setup(
     description="Machine learning system for predicting SaaS sales deal outcomes using multimodal learning",
     author="Your Team Name",
     author_email="your.email@example.com",
-    packages=find_packages(where="src"),
-    package_dir={"": "src"},
+    packages=[],
     python_requires=">=3.8",
     install_requires=[
         "pandas>=1.3.0",

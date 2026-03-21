@@ -14,7 +14,7 @@ data/
 
 ## Usage
 
-- **raw/**: Download HuggingFace datasets here using `src/data_preparation.py`
+- **raw/**: Download HuggingFace datasets here (loading logic lives in `notebooks/02_eda_preparation.ipynb` and `notebooks/03_feature_engineering.ipynb`)
 - **processed/**: Cleaned data automatically saved here after preprocessing
 
 ## Important
