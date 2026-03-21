@@ -1,0 +1,56 @@
+{
+  "Logistic Regression": {
+    "Lost": {
+      "precision": 0.9770764802631579,
+      "recall": 0.9491711603754743,
+      "f1-score": 0.9629216897983993,
+      "support": 10014.0
+    },
+    "Won": {
+      "precision": 0.9504478193146417,
+      "recall": 0.977668736230723,
+      "f1-score": 0.9638661269621878,
+      "support": 9986.0
+    },
+    "accuracy": 0.9634,
+    "macro avg": {
+      "precision": 0.9637621497888997,
+      "recall": 0.9634199483030987,
+      "f1-score": 0.9633939083802936,
+      "support": 20000.0
+    },
+    "weighted avg": {
+      "precision": 0.9637807898515639,
+      "recall": 0.9634,
+      "f1-score": 0.9633932472742789,
+      "support": 20000.0
+    }
+  },
+  "Random Forest": {
+    "Lost": {
+      "precision": 0.9743298969072165,
+      "recall": 0.9437787098062712,
+      "f1-score": 0.9588109972608299,
+      "support": 10014.0
+    },
+    "Won": {
+      "precision": 0.9453398058252427,
+      "recall": 0.9750650911275787,
+      "f1-score": 0.9599723947550034,
+      "support": 9986.0
+    },
+    "accuracy": 0.9594,
+    "macro avg": {
+      "precision": 0.9598348513662296,
+      "recall": 0.9594219004669249,
+      "f1-score": 0.9593916960079166,
+      "support": 20000.0
+    },
+    "weighted avg": {
+      "precision": 0.9598551444299869,
+      "recall": 0.9594,
+      "f1-score": 0.9593908830296707,
+      "support": 20000.0
+    }
+  }
+}
