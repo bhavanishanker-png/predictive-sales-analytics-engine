@@ -1,24 +1,32 @@
-# Data Directory
+# Data directory
 
-## Structure
+## Layout
 
 ```
 data/
-├── raw/              # Original datasets from HuggingFace
+├── raw/                    # Optional local cache of Hugging Face files
 │   └── saas-sales-conversations/
-└── processed/        # Cleaned and preprocessed data
-    ├── train_data.csv
+└── processed/              # Train/test splits or cleaned CSVs (if you export them)
+    ├── train_data.csv      # (optional; gitignored when large)
     ├── test_data.csv
     └── validation_data.csv
 ```
 
-## Usage
+## Source dataset
 
-- **raw/**: Download HuggingFace datasets here (loading logic lives in `notebooks/02_eda_preparation.ipynb` and `notebooks/03_feature_engineering.ipynb`)
-- **processed/**: Cleaned data automatically saved here after preprocessing
+- **Hugging Face**: `DeepMostInnovations/saas-sales-conversations`  
+- **Loading in code**: `src/data_preparation.py` (`load_dataset` via `datasets`).  
+- **Notebooks**: Primary exploration in `notebooks/02_eda_preparation.ipynb`; feature pipeline in `notebooks/03_feature_engineering.ipynb`.
 
-## Important
+The published snapshot includes many **embedding\_*** numeric columns (dimensionality reduction already applied upstream) plus conversation metadata and labels. Treat embeddings as **fixed features** unless you recompute them yourself with a documented model.
 
-- ⚠️ Never modify raw data directly
-- ⚠️ Always create processed versions for modeling
-- Add `data/raw/` and `data/processed/*.csv` to `.gitignore` (large files)
+## Usage guidelines
+
+- Do **not** edit files under `raw/`; treat them as immutable inputs.  
+- Write derived tables to `processed/` or to `results/` (arrays) as implemented in the notebooks.  
+- Large CSVs and pickles under `data/raw/` and `data/processed/` are **gitignored**; reviewers clone the repo and regenerate data per root `README.md`.
+
+## Reproducibility
+
+- Set `HF_TOKEN` if Hugging Face rate-limits anonymous downloads.  
+- After pulling data, run notebooks **02 → 03 → 04 → 05** so `metrics/` and `figures/` match your report.
