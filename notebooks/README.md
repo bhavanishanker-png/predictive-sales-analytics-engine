@@ -16,7 +16,7 @@ Execute notebooks in numerical order for proper pipeline flow:
 - Exploratory analysis and visualization
 - Model experimentation and tuning
 - Results documentation and reporting
-- NOT for production code (use `src/` instead)
+- NOT for production code (extract shared logic to a package if you need reuse outside Jupyter)
 
 ## Best Practices
 
@@ -24,4 +24,4 @@ Execute notebooks in numerical order for proper pipeline flow:
 - Install required packages in first cell
 - Document findings and key insights
 - Save outputs (figures, metrics) to appropriate directories
-- Use absolute imports from `src/` module
+- Run notebooks from the `notebooks/` directory so relative paths (e.g. to `figures/`, `metrics/`) resolve correctly
