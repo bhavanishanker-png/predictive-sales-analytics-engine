@@ -42,10 +42,28 @@ env/
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# Data files (optional - uncomment if needed)
-# *.csv
-# *.xlsx
-# data/
+# Data files - large datasets
+data/raw/**/*.csv
+data/raw/**/*.parquet
+data/raw/**/*.pkl
+data/processed/**/*.csv
+data/processed/**/*.parquet
+
+# Model files - large serialized objects
+results/models/**/*.pkl
+results/models/**/*.h5
+results/models/**/*.joblib
+
+# Predictions and logs
+results/predictions/**/*.csv
+results/logs/**/*.log
+results/logs/**/*.json
+
+# Large output files
+*.h5
+*.pkl
+*.joblib
+*.pickle
 
 # Testing
 .pytest_cache/
@@ -55,3 +73,19 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Keep track of structure but ignore large files
+# Keep README files and directory structure
+!**/README.md
+!data/.gitkeep
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!results/.gitkeep
+!results/models/.gitkeep
+!results/predictions/.gitkeep
+!results/logs/.gitkeep
+!metrics/.gitkeep
+!figures/.gitkeep
+results/*.npz
+results/*.npy
+results/*.pkl
