@@ -28,7 +28,7 @@ End-to-end machine learning workflow to predict **SaaS sales conversation outcom
 
    | Step | Notebook | Purpose |
    |------|----------|---------|
-   | 1 | [02_eda_preparation.ipynb](notebooks/02_eda_preparation.ipynb) | Load data, quality checks, cleaning, EDA |
+   | 1 | [02_eda_preparation.ipynb](notebooks/02_eda_preparation.ipynb) | Load data,  quality checks,  cleaning,  EDA |
    | 2 | [03_feature_engineering.ipynb](notebooks/03_feature_engineering.ipynb) | Features, optional PCA, saves `results/*.npy` |
    | 3 | [04_model_training.ipynb](notebooks/04_model_training.ipynb) | Logistic regression + Random Forest, `GridSearchCV` |
    | 4 | [05_model_evaluation.ipynb](notebooks/05_model_evaluation.ipynb) | ROC, confusion matrices, metrics JSON/CSV |
