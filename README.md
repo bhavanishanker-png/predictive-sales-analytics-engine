@@ -62,6 +62,7 @@ Feature engineering writes arrays such as `X_pca.npy` and `y.npy` for downstream
 - `results/models/` — serialized models (gitignored when large)
 - `results/predictions/`, `results/logs/` — optional outputs
 
+
 ## Documentation
 
 - [data/README.md](data/README.md) — data layout and Hugging Face usage  
@@ -69,11 +70,13 @@ Feature engineering writes arrays such as `X_pca.npy` and `y.npy` for downstream
 - [docs/README.md](docs/README.md) — literature + theory + pointers for the written report  
 - [docs/THEORETICAL_RIGOR.md](docs/THEORETICAL_RIGOR.md) — assumptions, models, metrics (rubric: theoretical rigor)
 
+
 ## Models and metrics (summary)
 
 - **Baseline**: logistic regression on engineered features (interpretable linear boundary in transformed space).  
 - **Comparator**: Random Forest with **GridSearchCV** (cross-validated **F1**).  
 - **Evaluation**: accuracy, precision, recall, **F1**, **ROC-AUC**, average precision; confusion matrices and ROC plots under `figures/`.
+
 
 ## Contributing / course submission
 
