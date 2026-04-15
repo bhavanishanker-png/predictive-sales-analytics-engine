@@ -7,7 +7,6 @@ from pathlib import Path
 import nbformat
 from nbclient import NotebookClient
 
-
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("notebook", type=Path)
@@ -23,7 +22,6 @@ def main() -> int:
     nbformat.write(nb, path)
     print(f"OK: {path}")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
