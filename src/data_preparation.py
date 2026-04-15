@@ -11,7 +11,6 @@ from typing import Optional, Union
 import pandas as pd
 from datasets import Dataset, DatasetDict, load_dataset
 
-
 DATASET_NAME = "DeepMostInnovations/saas-sales-conversations"
 
 
@@ -106,7 +105,6 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     return cleaned_df
 
-
 def run_data_preparation(dataset_name: str = DATASET_NAME, split: Optional[str] = None) -> pd.DataFrame:
     """Run full data preparation flow and return cleaned DataFrame."""
     hf_data = load_hf_dataset(dataset_name=dataset_name, split=split)
@@ -121,5 +119,4 @@ def run_data_preparation(dataset_name: str = DATASET_NAME, split: Optional[str] 
     print(f"Shape: {cleaned_df.shape}")
     print(f"Duplicate rows: {cleaned_df.duplicated().sum()}")
     print("Missing values (sum across all columns):", int(cleaned_df.isna().sum().sum()))
-
     return cleaned_df
