@@ -342,3 +342,170 @@ class DistilBERTClassifier(nn.Module):
         logits = self.classifier(cls_hidden)
         return logits
 
+
+# ---------------------------------------------------------------------------
+# Early stopping
+# ---------------------------------------------------------------------------
+
+class EarlyStopping:
+    """Stop training when validation loss stops improving.
+
+    Tracks the best validation loss and triggers a stop after `patience`
+    consecutive epochs without improvement greater than `min_delta`.
+    Optionally saves the best model checkpoint.
+    """
+
+    def __init__(
+        self,
+        patience: int = 3,
+        min_delta: float = 1e-4,
+        save_path: Optional[str] = None,
+    ) -> None:
+        self.patience = patience
+        self.min_delta = min_delta
+        self.save_path = save_path
+        self.best_loss: Optional[float] = None
+        self.counter = 0
+        self.should_stop = False
+
+    def __call__(self, val_loss: float, model: nn.Module) -> bool:
+        if self.best_loss is None or val_loss < self.best_loss - self.min_delta:
+            self.best_loss = val_loss
+            self.counter = 0
+            if self.save_path:
+                torch.save(model.state_dict(), self.save_path)
+        else:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.should_stop = True
+        return self.should_stop
+
+
+# ---------------------------------------------------------------------------
+# Training & evaluation helpers
+# ---------------------------------------------------------------------------
+
+def get_device(preference: str = "auto") -> torch.device:
+    """Resolve compute device: CUDA → MPS → CPU."""
+    if preference != "auto":
+        return torch.device(preference)
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
+def train_lstm_epoch(
+    model: BiLSTMClassifier,
+    loader: DataLoader,
+    optimizer: torch.optim.Optimizer,
+    criterion: nn.Module,
+    device: torch.device,
+    grad_clip: float = 1.0,
+) -> Tuple[float, float]:
+    """Run one training epoch for the LSTM model; return (loss, accuracy)."""
+    model.train()
+    total_loss, correct, total = 0.0, 0, 0
+    for token_ids, labels in loader:
+        token_ids, labels = token_ids.to(device), labels.to(device)
+        optimizer.zero_grad()
+        logits, _ = model(token_ids)
+        loss = criterion(logits, labels)
+        loss.backward()
+        nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+        optimizer.step()
+        total_loss += loss.item() * labels.size(0)
+        correct += (logits.argmax(1) == labels).sum().item()
+        total += labels.size(0)
+    return total_loss / total, correct / total
+
+
+@torch.no_grad()
+def evaluate_lstm(
+    model: BiLSTMClassifier,
+    loader: DataLoader,
+    criterion: nn.Module,
+    device: torch.device,
+) -> Tuple[float, float, np.ndarray, np.ndarray]:
+    """Evaluate the LSTM model; return (loss, accuracy, all_preds, all_probs)."""
+    model.eval()
+    total_loss, correct, total = 0.0, 0, 0
+    all_preds, all_probs = [], []
+    for token_ids, labels in loader:
+        token_ids, labels = token_ids.to(device), labels.to(device)
+        logits, _ = model(token_ids)
+        loss = criterion(logits, labels)
+        probs = F.softmax(logits, dim=1)
+        preds = logits.argmax(1)
+        total_loss += loss.item() * labels.size(0)
+        correct += (preds == labels).sum().item()
+        total += labels.size(0)
+        all_preds.append(preds.cpu().numpy())
+        all_probs.append(probs[:, 1].cpu().numpy())
+    return (
+        total_loss / total,
+        correct / total,
+        np.concatenate(all_preds),
+        np.concatenate(all_probs),
+    )
+
+
+def train_transformer_epoch(
+    model: DistilBERTClassifier,
+    loader: DataLoader,
+    optimizer: torch.optim.Optimizer,
+    criterion: nn.Module,
+    device: torch.device,
+    grad_clip: float = 1.0,
+) -> Tuple[float, float]:
+    """Run one training epoch for the Transformer model."""
+    model.train()
+    total_loss, correct, total = 0.0, 0, 0
+    for batch in loader:
+        input_ids = batch["input_ids"].to(device)
+        attention_mask = batch["attention_mask"].to(device)
+        labels = batch["labels"].to(device)
+        optimizer.zero_grad()
+        logits = model(input_ids, attention_mask)
+        loss = criterion(logits, labels)
+        loss.backward()
+        nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+        optimizer.step()
+        total_loss += loss.item() * labels.size(0)
+        correct += (logits.argmax(1) == labels).sum().item()
+        total += labels.size(0)
+    return total_loss / total, correct / total
+
+
+@torch.no_grad()
+def evaluate_transformer(
+    model: DistilBERTClassifier,
+    loader: DataLoader,
+    criterion: nn.Module,
+    device: torch.device,
+) -> Tuple[float, float, np.ndarray, np.ndarray]:
+    """Evaluate the Transformer model."""
+    model.eval()
+    total_loss, correct, total = 0.0, 0, 0
+    all_preds, all_probs = [], []
+    for batch in loader:
+        input_ids = batch["input_ids"].to(device)
+        attention_mask = batch["attention_mask"].to(device)
+        labels = batch["labels"].to(device)
+        logits = model(input_ids, attention_mask)
+        loss = criterion(logits, labels)
+        probs = F.softmax(logits, dim=1)
+        preds = logits.argmax(1)
+        total_loss += loss.item() * labels.size(0)
+        correct += (preds == labels).sum().item()
+        total += labels.size(0)
+        all_preds.append(preds.cpu().numpy())
+        all_probs.append(probs[:, 1].cpu().numpy())
+    return (
+        total_loss / total,
+        correct / total,
+        np.concatenate(all_preds),
+        np.concatenate(all_probs),
+    )
+
