@@ -509,3 +509,137 @@ def evaluate_transformer(
         np.concatenate(all_probs),
     )
 
+
+# ---------------------------------------------------------------------------
+# Full training loops (called from notebook)
+# ---------------------------------------------------------------------------
+
+def train_lstm_model(
+    model: BiLSTMClassifier,
+    train_loader: DataLoader,
+    val_loader: DataLoader,
+    config: TrainingConfig,
+    save_dir: str = "../results",
+) -> Dict[str, list]:
+    """Full training loop for LSTM with early stopping and LR scheduling."""
+    device = get_device(config.device)
+    model = model.to(device)
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=config.lr, weight_decay=config.weight_decay,
+    )
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=config.scheduler_factor,
+        patience=config.scheduler_patience,
+    )
+    save_path = str(Path(save_dir) / "model_lstm_best.pt")
+    early_stop = EarlyStopping(
+        patience=config.patience, min_delta=config.min_delta, save_path=save_path,
+    )
+
+    history: Dict[str, list] = {
+        "train_loss": [], "train_acc": [], "val_loss": [], "val_acc": [], "lr": [],
+    }
+
+    for epoch in range(1, config.epochs + 1):
+        t0 = time.time()
+        train_loss, train_acc = train_lstm_epoch(
+            model, train_loader, optimizer, criterion, device, config.grad_clip,
+        )
+        val_loss, val_acc, _, _ = evaluate_lstm(model, val_loader, criterion, device)
+        scheduler.step(val_loss)
+        current_lr = optimizer.param_groups[0]["lr"]
+
+        history["train_loss"].append(train_loss)
+        history["train_acc"].append(train_acc)
+        history["val_loss"].append(val_loss)
+        history["val_acc"].append(val_acc)
+        history["lr"].append(current_lr)
+
+        elapsed = time.time() - t0
+        print(
+            f"Epoch {epoch:02d}/{config.epochs} | "
+            f"Train Loss: {train_loss:.4f} Acc: {train_acc:.4f} | "
+            f"Val Loss: {val_loss:.4f} Acc: {val_acc:.4f} | "
+            f"LR: {current_lr:.2e} | {elapsed:.1f}s"
+        )
+
+        if early_stop(val_loss, model):
+            print(f"Early stopping triggered at epoch {epoch}")
+            break
+
+    model.load_state_dict(torch.load(save_path, weights_only=True))
+    return history
+
+
+def train_transformer_model(
+    model: DistilBERTClassifier,
+    train_loader: DataLoader,
+    val_loader: DataLoader,
+    config: TrainingConfig,
+    save_dir: str = "../results",
+) -> Dict[str, list]:
+    """Full training loop for DistilBERT with differential LR."""
+    device = get_device(config.device)
+    model = model.to(device)
+
+    criterion = nn.CrossEntropyLoss()
+
+    # Differential learning rate: smaller LR for pretrained body,
+    # larger LR for the new classification head.
+    bert_params = list(model.bert.parameters())
+    head_params = (
+        list(model.layer_norm.parameters())
+        + list(model.dropout.parameters())
+        + list(model.classifier.parameters())
+    )
+    optimizer = torch.optim.AdamW([
+        {"params": bert_params, "lr": config.lr * 0.1},
+        {"params": head_params, "lr": config.lr},
+    ], weight_decay=config.weight_decay)
+
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=config.scheduler_factor,
+        patience=config.scheduler_patience,
+    )
+    save_path = str(Path(save_dir) / "model_distilbert_best.pt")
+    early_stop = EarlyStopping(
+        patience=config.patience, min_delta=config.min_delta, save_path=save_path,
+    )
+
+    history: Dict[str, list] = {
+        "train_loss": [], "train_acc": [], "val_loss": [], "val_acc": [], "lr": [],
+    }
+
+    for epoch in range(1, config.epochs + 1):
+        t0 = time.time()
+        train_loss, train_acc = train_transformer_epoch(
+            model, train_loader, optimizer, criterion, device, config.grad_clip,
+        )
+        val_loss, val_acc, _, _ = evaluate_transformer(
+            model, val_loader, criterion, device,
+        )
+        scheduler.step(val_loss)
+        current_lr = optimizer.param_groups[1]["lr"]  # head LR
+
+        history["train_loss"].append(train_loss)
+        history["train_acc"].append(train_acc)
+        history["val_loss"].append(val_loss)
+        history["val_acc"].append(val_acc)
+        history["lr"].append(current_lr)
+
+        elapsed = time.time() - t0
+        print(
+            f"Epoch {epoch:02d}/{config.epochs} | "
+            f"Train Loss: {train_loss:.4f} Acc: {train_acc:.4f} | "
+            f"Val Loss: {val_loss:.4f} Acc: {val_acc:.4f} | "
+            f"LR: {current_lr:.2e} | {elapsed:.1f}s"
+        )
+
+        if early_stop(val_loss, model):
+            print(f"Early stopping triggered at epoch {epoch}")
+            break
+
+    model.load_state_dict(torch.load(save_path, weights_only=True))
+    return history
