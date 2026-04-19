@@ -78,6 +78,7 @@ Feature engineering writes arrays such as `X_pca.npy` and `y.npy` for downstream
 - **Evaluation**: accuracy, precision, recall, **F1**, **ROC-AUC**, average precision; confusion matrices and ROC plots under `figures/`.
 
 
+
 ## Contributing / course submission
 
 Replace placeholder author fields in `setup.py` if you publish the repo. Keep `metrics/` and `figures/` updated when you re-run evaluation so the repository matches the report.
