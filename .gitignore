@@ -86,6 +86,7 @@ Thumbs.db
 !results/logs/.gitkeep
 !metrics/.gitkeep
 !figures/.gitkeep
+results/
 results/*.npz
 results/*.npy
 results/*.pkl
