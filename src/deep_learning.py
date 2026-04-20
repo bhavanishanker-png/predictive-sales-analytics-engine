@@ -55,6 +55,7 @@ class LSTMConfig:
     dropout: float = 0.3
     bidirectional: bool = True
     num_classes: int = 2
+    use_attention: bool = True
 
 
 @dataclass
@@ -279,7 +280,15 @@ class BiLSTMClassifier(nn.Module):
         mask = (x != 0).float()                        # (batch, seq_len)
         embedded = self.dropout(self.embedding(x))     # (batch, seq_len, embed_dim)
         lstm_out, _ = self.lstm(embedded)              # (batch, seq_len, hidden*2)
-        context, attn_weights = self.attention(lstm_out, mask)
+        
+        # Optionally bypass attention if configured (for debugging)
+        if hasattr(self.config, 'use_attention') and not self.config.use_attention:
+            # simple mean pooling
+            context = lstm_out.mean(dim=1)
+            attn_weights = None
+        else:
+            context, attn_weights = self.attention(lstm_out, mask)
+            
         context = self.layer_norm(context)
         context = self.dropout(context)
         hidden = F.relu(self.fc1(context))
@@ -407,16 +416,26 @@ def train_lstm_epoch(
     """Run one training epoch for the LSTM model; return (loss, accuracy)."""
     model.train()
     total_loss, correct, total = 0.0, 0, 0
+    is_binary = model.config.num_classes == 1
+    
     for token_ids, labels in loader:
         token_ids, labels = token_ids.to(device), labels.to(device)
         optimizer.zero_grad()
         logits, _ = model(token_ids)
-        loss = criterion(logits, labels)
+        
+        if is_binary:
+            logits = logits.squeeze(-1)
+            loss = criterion(logits, labels.float())
+            preds = (logits > 0).long()
+        else:
+            loss = criterion(logits, labels)
+            preds = logits.argmax(1)
+            
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
         optimizer.step()
         total_loss += loss.item() * labels.size(0)
-        correct += (logits.argmax(1) == labels).sum().item()
+        correct += (preds == labels).sum().item()
         total += labels.size(0)
     return total_loss / total, correct / total
 
@@ -432,17 +451,30 @@ def evaluate_lstm(
     model.eval()
     total_loss, correct, total = 0.0, 0, 0
     all_preds, all_probs = [], []
+    is_binary = model.config.num_classes == 1
+    
     for token_ids, labels in loader:
         token_ids, labels = token_ids.to(device), labels.to(device)
         logits, _ = model(token_ids)
-        loss = criterion(logits, labels)
-        probs = F.softmax(logits, dim=1)
-        preds = logits.argmax(1)
+        
+        if is_binary:
+            logits = logits.squeeze(-1)
+            loss = criterion(logits, labels.float())
+            preds = (logits > 0).long()
+            probs = torch.sigmoid(logits)
+            all_preds.append(preds.cpu().numpy())
+            all_probs.append(probs.cpu().numpy())
+        else:
+            loss = criterion(logits, labels)
+            probs = F.softmax(logits, dim=1)
+            preds = logits.argmax(1)
+            all_preds.append(preds.cpu().numpy())
+            all_probs.append(probs[:, 1].cpu().numpy())
+            
         total_loss += loss.item() * labels.size(0)
         correct += (preds == labels).sum().item()
         total += labels.size(0)
-        all_preds.append(preds.cpu().numpy())
-        all_probs.append(probs[:, 1].cpu().numpy())
+        
     return (
         total_loss / total,
         correct / total,
@@ -525,7 +557,9 @@ def train_lstm_model(
     device = get_device(config.device)
     model = model.to(device)
 
-    criterion = nn.CrossEntropyLoss()
+    is_binary = model.config.num_classes == 1
+    criterion = nn.BCEWithLogitsLoss() if is_binary else nn.CrossEntropyLoss()
+    
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=config.lr, weight_decay=config.weight_decay,
     )
