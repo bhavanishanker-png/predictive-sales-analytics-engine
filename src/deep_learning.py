@@ -552,6 +552,7 @@ def train_lstm_model(
     val_loader: DataLoader,
     config: TrainingConfig,
     save_dir: str = "../results",
+    save_name: str = "model_lstm_best.pt",
 ) -> Dict[str, list]:
     """Full training loop for LSTM with early stopping and LR scheduling."""
     device = get_device(config.device)
@@ -567,7 +568,7 @@ def train_lstm_model(
         optimizer, mode="min", factor=config.scheduler_factor,
         patience=config.scheduler_patience,
     )
-    save_path = str(Path(save_dir) / "model_lstm_best.pt")
+    save_path = str(Path(save_dir) / save_name)
     early_stop = EarlyStopping(
         patience=config.patience, min_delta=config.min_delta, save_path=save_path,
     )
@@ -677,3 +678,98 @@ def train_transformer_model(
 
     model.load_state_dict(torch.load(save_path, weights_only=True))
     return history
+
+
+# ---------------------------------------------------------------------------
+# Pretrained GloVe embedding utilities
+# ---------------------------------------------------------------------------
+
+def download_glove(
+    glove_dir: str = "data/glove",
+    dim: int = 100,
+) -> str:
+    """Download GloVe 6B embeddings from Stanford and extract the requested
+    dimensionality file.
+
+    Returns the path to the extracted text file (e.g. glove.6B.100d.txt).
+    """
+    import os
+    import urllib.request
+    import zipfile
+    import ssl
+
+    # Bypass SSL verification for macOS
+    ssl._create_default_https_context = ssl._create_unverified_context
+
+    glove_dir = Path(glove_dir)
+    glove_dir.mkdir(parents=True, exist_ok=True)
+
+    target_file = glove_dir / f"glove.6B.{dim}d.txt"
+    if target_file.exists():
+        print(f"GloVe file already exists: {target_file}")
+        return str(target_file)
+
+    zip_path = glove_dir / "glove.6B.zip"
+    url = "https://nlp.stanford.edu/data/glove.6B.zip"
+
+    if not zip_path.exists():
+        print(f"Downloading GloVe 6B from {url} (~862 MB, this may take a while)...")
+        urllib.request.urlretrieve(url, str(zip_path))
+        print("Download complete.")
+
+    print(f"Extracting glove.6B.{dim}d.txt ...")
+    with zipfile.ZipFile(str(zip_path), "r") as zf:
+        target_name = f"glove.6B.{dim}d.txt"
+        zf.extract(target_name, str(glove_dir))
+
+    print(f"GloVe ready: {target_file}")
+    return str(target_file)
+
+
+def build_glove_embedding_matrix(
+    glove_path: str,
+    word2idx: Dict[str, int],
+    embed_dim: int = 100,
+) -> torch.Tensor:
+    """Build an embedding matrix from a GloVe text file aligned with a
+    word2idx vocabulary.
+
+    Words not found in GloVe are initialised with small random vectors
+    (normal distribution, σ=0.6) so they still receive gradient updates
+    during training.
+
+    Returns a FloatTensor of shape (vocab_size, embed_dim).
+    """
+    # Parse GloVe file into a dict
+    glove_vectors: Dict[str, np.ndarray] = {}
+    print(f"Loading GloVe vectors from {glove_path} ...")
+    with open(glove_path, "r", encoding="utf-8") as f:
+        for line in f:
+            parts = line.strip().split()
+            word = parts[0]
+            vector = np.array(parts[1:], dtype=np.float32)
+            if vector.shape[0] == embed_dim:
+                glove_vectors[word] = vector
+
+    print(f"  Loaded {len(glove_vectors):,} GloVe vectors ({embed_dim}d)")
+
+    # Build the matrix
+    vocab_size = len(word2idx)
+    matrix = np.zeros((vocab_size, embed_dim), dtype=np.float32)
+    found = 0
+
+    for word, idx in word2idx.items():
+        vec = glove_vectors.get(word.lower())
+        if vec is not None:
+            matrix[idx] = vec
+            found += 1
+        else:
+            # Random init for OOV words (not zeros — they need gradients)
+            matrix[idx] = np.random.normal(scale=0.6, size=(embed_dim,))
+
+    # Keep padding index at zero
+    matrix[0] = 0.0
+
+    coverage = found / vocab_size * 100
+    print(f"  GloVe coverage: {found:,}/{vocab_size:,} words ({coverage:.1f}%)")
+    return torch.FloatTensor(matrix)
