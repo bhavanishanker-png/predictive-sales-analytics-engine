@@ -21,6 +21,7 @@ Execute in this order from the repository (run Jupyter with working directory `n
 
 ## Automation
 
+
 From repo root (after `pip install nbclient`):
 
 ```bash
