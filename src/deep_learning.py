@@ -509,7 +509,7 @@ def train_transformer_epoch(
         total += labels.size(0)
     return total_loss / total, correct / total
 
-
+# Evaluating tranformers 
 @torch.no_grad()
 def evaluate_transformer(
     model: DistilBERTClassifier,
@@ -769,7 +769,6 @@ def build_glove_embedding_matrix(
 
     # Keep padding index at zero
     matrix[0] = 0.0
-
     coverage = found / vocab_size * 100
     print(f"  GloVe coverage: {found:,}/{vocab_size:,} words ({coverage:.1f}%)")
     return torch.FloatTensor(matrix)
