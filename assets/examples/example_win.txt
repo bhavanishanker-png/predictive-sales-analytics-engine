@@ -1,0 +1,8 @@
+Customer: Hi, we are a 220-person SaaS team and our CRM follow-up is inconsistent across reps.
+Sales Rep: Thanks for sharing. How many inbound leads are you handling per month today?
+Customer: Around 500 leads monthly, and many go cold because routing is manual.
+Sales Rep: Our workflow automation and AI lead scoring are built for this exact problem.
+Customer: Does it integrate with HubSpot and Slack? We need both.
+Sales Rep: Yes, both are native integrations, and we can migrate your pipeline in two days.
+Customer: Great. This sounds aligned with what we need.
+Sales Rep: Perfect, let's schedule a technical demo with your RevOps lead tomorrow.

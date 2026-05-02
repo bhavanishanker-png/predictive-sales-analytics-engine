@@ -1,0 +1,9 @@
+Customer: We are evaluating three CRM platforms this month and your name came up often.
+Sales Rep: Glad to hear that. What are your top decision criteria right now?
+Customer: Integration depth and reporting quality are critical for our RevOps team.
+Sales Rep: We support custom dashboards, pipeline forecasts, and native Salesforce sync.
+Customer: One competitor said your forecasting is less accurate for enterprise accounts.
+Sales Rep: That is a common misconception; we can show benchmark accuracy by segment.
+Customer: Pricing is also a concern, but your onboarding seems stronger.
+Sales Rep: We can structure a phased rollout and show ROI milestones in week one.
+Customer: Let me review this with my team and come back with final questions.

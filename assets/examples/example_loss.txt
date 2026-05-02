@@ -1,0 +1,7 @@
+Customer: Before anything else, what is your price per seat?
+Sales Rep: Our standard plan is 49 dollars per user per month with annual billing.
+Customer: That is much higher than our budget. We are closer to 18 dollars.
+Sales Rep: We can discuss value and long-term ROI if that helps.
+Customer: A competitor already offered us similar features at 20 dollars.
+Sales Rep: Understood, but we provide stronger analytics and support.
+Customer: Thanks, but we will move forward with the cheaper option.
