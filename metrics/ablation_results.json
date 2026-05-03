@@ -1,0 +1,38 @@
+{
+  "A_full_hybrid": {
+    "f1": 0.0,
+    "auc": 0.0,
+    "acc": 0.0,
+    "edge_case_f1": 0.0
+  },
+  "B_tabular_only": {
+    "f1": 0.9639,
+    "auc": 0.9957,
+    "acc": 0.959,
+    "edge_case_f1": 0.0
+  },
+  "C_text_only": {
+    "f1": 0.0,
+    "auc": 0.0,
+    "acc": 0.0,
+    "edge_case_f1": 0.0
+  },
+  "D_concat_no_gate": {
+    "f1": 0.0,
+    "auc": 0.0,
+    "acc": 0.0,
+    "edge_case_f1": 0.0
+  },
+  "E_frozen_text": {
+    "f1": 0.0,
+    "auc": 0.0,
+    "acc": 0.0,
+    "edge_case_f1": 0.0
+  },
+  "F_no_xgb_encode": {
+    "f1": 0.0,
+    "auc": 0.0,
+    "acc": 0.0,
+    "edge_case_f1": 0.0
+  }
+}

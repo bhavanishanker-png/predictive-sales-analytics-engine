@@ -1,10 +1,7 @@
 """SaaS sales analytics pipeline modules."""
 
-from src.fusion_model import GatedFusion, HybridSalesPredictor
-from src.inference import SalesPredictor
-from src.parsers import detect_text_column, parse_plain_text, parse_uploaded_file
-from src.explainability import HybridExplainer
-from src.text_pipeline import TextEncoder
+# Imports are kept lazy here to avoid loading heavy deps (torch, transformers)
+# when notebooks only need a subset of src. Import directly from submodules.
 
 __all__ = [
     "GatedFusion",
