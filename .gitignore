@@ -100,3 +100,6 @@ models/tokenizer/*.json
 figures/*.png
 metrics/*_history.json
 metrics/ablation_results.json
+
+# Docs prep files
+docs/docs-prep/
