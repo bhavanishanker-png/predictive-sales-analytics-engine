@@ -1,84 +1,153 @@
 # Predictive Sales Analytics Engine
 
-End-to-end machine learning workflow to predict **SaaS sales conversation outcomes** from structured fields, categorical attributes, and text (or precomputed embeddings). Data is loaded from Hugging Face (`DeepMostInnovations/saas-sales-conversations`). The project implements a dual-track approach comparing **Classical ML models** with **Deep Learning architectures** (BiLSTM with GloVe embeddings, DistilBERT). Reusable logic lives under `src/`, experiments and reporting under `notebooks/`.
+Hybrid ML/DL system for predicting SaaS deal outcomes from sales conversations.  
+The project combines tabular features + text modeling, compares ablations, and provides explainability artifacts (SHAP, attention, gating behavior).
 
+Dataset source: [`DeepMostInnovations/saas-sales-conversations`](https://huggingface.co/datasets/DeepMostInnovations/saas-sales-conversations)
 
-## Quick start
+## Project Highlights
 
-1. **Python**: 3.10+ recommended (3.8+ supported per `setup.py`).
+- **Multimodal pipeline**: tabular branch + text branch + fusion logic
+- **Ablation-first evaluation**: full hybrid vs reduced variants
+- **Explainability**: SHAP summaries, per-sample feature effects, attention/gate analysis
+- **Interactive app**: Streamlit UI for single/batch prediction demos
+- **Reproducible workflow**: notebooks for staged experimentation + scripts for orchestration
 
-2. **Environment**
+## Tech Stack
 
-   ```bash
-   cd predictive-sales-analytics-engine
-   python -m venv .venv
-   source .venv/bin/activate   # Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
-   pip install jupyter matplotlib seaborn joblib nbformat nbclient ipykernel torch transformers
-   ```
+- Python, NumPy, Pandas, scikit-learn
+- PyTorch, Transformers
+- XGBoost, SHAP
+- Jupyter notebooks
+- Streamlit + Plotly
 
-   Core training also uses `numpy` (pulled in by scikit-learn). For headless notebook execution: `pip install nbclient`.
+## Setup
 
-3. **Data**
+### 1) Create environment
 
-   Download or stream the dataset via Hugging Face (see [data/README.md](data/README.md)). Large artifacts are gitignored.
-
-4. **Run the pipeline (order)**
-
-   Open Jupyter from the repo root or `notebooks/`, then run in sequence:
-
-   | Step | Notebook | Purpose |
-   |------|----------|---------|
-   | 1 | [02_eda_preparation.ipynb](notebooks/02_eda_preparation.ipynb) | Load data,  quality checks,  cleaning,  EDA |
-   | 2 | [03_feature_engineering.ipynb](notebooks/03_feature_engineering.ipynb) | Features, optional PCA, saves `results/*.npy` |
-   | 3 | [04_model_training.ipynb](notebooks/04_model_training.ipynb) | Logistic regression + Random Forest, `GridSearchCV` |
-   | 4 | [05_model_evaluation.ipynb](notebooks/05_model_evaluation.ipynb) | ROC, confusion matrices, metrics JSON/CSV |
-   | 5 | [06_dl_data_preprocessing.ipynb](notebooks/06_dl_data_preprocessing.ipynb) | Text tokenization, word-level & WordPiece sequencing |
-   | 6 | [07_dl_model_training.ipynb](notebooks/07_dl_model_training.ipynb) | BiLSTM + Attention (Random & GloVe), DistilBERT fine-tuning |
-   | 7 | [08_dl_evaluation.ipynb](notebooks/08_dl_evaluation.ipynb) | Deep learning evaluation and Classical ML comparison |
-
-## Repository layout
-
+```bash
+cd predictive-sales-analytics-engine
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install jupyter ipykernel
 ```
-├── README.md                 # This file
-├── requirements.txt          # Minimal runtime deps for src + HF load
-├── setup.py                  # Optional editable install metadata
+
+### 2) Select kernel in Jupyter/VS Code
+
+Use the project interpreter:
+
+```bash
+.venv/bin/python
+```
+
+### 3) (Optional) Hugging Face token
+
+Without token, you may see an HF warning and lower rate limits:
+
+```bash
+export HF_TOKEN=your_token_here
+```
+
+## Recommended Execution Flow
+
+Run from repo root with the project kernel active.
+
+### Core notebook path (current Phase-3 focus)
+
+1. `notebooks/06_hybrid_fusion.ipynb`  
+   Train/build hybrid components and save artifacts.
+2. `notebooks/07_ablation_studies.ipynb`  
+   Compare architectural variants and write ablation metrics.
+3. `notebooks/08_explainability.ipynb`  
+   Generate SHAP and interpretability outputs.
+
+### Earlier phase notebooks (baseline + DL progression)
+
+- `notebooks/02_eda_preparation.ipynb`
+- `notebooks/03_feature_engineering.ipynb`
+- `notebooks/04_model_training.ipynb`
+- `notebooks/05_model_evaluation.ipynb`
+- `notebooks/06_dl_data_preprocessing.ipynb`
+- `notebooks/07_dl_model_training.ipynb`
+- `notebooks/08_dl_evaluation.ipynb`
+- `notebooks/09_dl_interactive_prediction.ipynb`
+
+## Run Scripts and App
+
+### Pipeline script
+
+```bash
+python scripts/run_pipeline.py --device cpu --sample-size 40000
+```
+
+Useful flags:
+
+- `--skip-ablation`
+- `--batch-size`
+- `--epochs-frozen`
+- `--epochs-finetune`
+
+### Streamlit app
+
+```bash
+streamlit run app.py
+```
+
+App tabs include single prediction, batch prediction, explainability/ablations, architecture view, and sample validation.
+
+## Repository Structure
+
+```text
+.
+├── app.py
+├── scripts/
+│   ├── run_pipeline.py
+│   ├── run_notebook.py
+│   └── retrain_lstm_with_glove.py
 ├── src/
-│   ├── data_preparation.py   # HF load, cleaning, missing values
-│   ├── feature_engineering.py # Numeric ratios, OHE, TF-IDF / embeddings
-│   └── deep_learning.py      # PyTorch BiLSTM and DistilBERT architectures
-├── notebooks/                # EDA → features → train → evaluate
-├── figures/                  # Saved plots (e.g. ROC, feature logs)
-├── metrics/                  # JSON/CSV metrics committed for reporting
+│   ├── data_preparation.py
+│   ├── feature_engineering.py
+│   ├── deep_learning.py
+│   ├── fusion_model.py
+│   ├── explainability.py
+│   ├── inference.py
+│   ├── parsers.py
+│   └── text_pipeline.py
+├── notebooks/
+├── models/
+├── metrics/
+├── figures/
 ├── docs/
-│   ├── README.md             # Documentation index
-│   ├── PROJECT_ANALYSIS.md   # Deep dive evaluation and senior review notes
-│   ├── Literature Review.pdf # Submitted literature (PDF)
-│   └── THEORETICAL_RIGOR.md  # Theory tied to this project
-├── data/                     # raw/ and processed/ (see data/README.md)
-└── results/                  # Generated arrays, checkpoints, tokenizers
+└── data/
 ```
 
-## Results directory (`results/`)
+## Artifacts and Versioning
 
-Feature engineering writes arrays such as `X_pca.npy` and `y.npy` for downstream notebooks. Deep learning preprocessing caches tokenized tensors (`dl_train_ids.pt`, `dl_bert_train.pt`) and custom vocabulary (`dl_tokenizer.json`). Training saves `model_*_best.pt` models. Large binaries are listed in `.gitignore`.
+This repo generates large artifacts (`models/`, tokenizer files, figures, and some metrics).  
+`.gitignore` is configured to avoid accidentally committing heavy generated files.
+
+If a file was already tracked before adding ignore rules, remove it from tracking once:
+
+```bash
+git rm --cached <path>
+```
+
+## Troubleshooting
+
+- **Kernel crashes in notebook**:
+  - Confirm kernel path is `.venv/bin/python`
+  - Reduce sample sizes for heavy cells
+  - Keep optional heavy loads disabled unless needed (for example hybrid/gate analysis)
+- **HF warning about unauthenticated requests**:
+  - Warning only; set `HF_TOKEN` to improve limits/speed
+- **XGBoost instability on some environments**:
+  - Use the safe tree fallback path in notebook when needed
 
 ## Documentation
 
-- [data/README.md](data/README.md) — data layout and Hugging Face usage  
-- [notebooks/README.md](notebooks/README.md) — notebook order and conventions  
-- [docs/README.md](docs/README.md) — literature + theory + pointers for the written report  
-- [docs/PROJECT_ANALYSIS.md](docs/PROJECT_ANALYSIS.md) — full project analysis, metrics breakdown & interview prep
-- [docs/THEORETICAL_RIGOR.md](docs/THEORETICAL_RIGOR.md) — assumptions, models, metrics
-
-## Models and metrics (summary)
-
-- **Classical Baseline**: Logistic regression on engineered features (interpretable linear boundary).
-- **Classical Comparator**: Random Forest with **GridSearchCV** (cross-validated).
-- **Deep Learning Baseline**: BiLSTM + Self-Attention with random embedding initialization.
-- **Deep Learning Advanced**: BiLSTM + Self-Attention using **GloVe pretrained embeddings**, and **DistilBERT** fine-tuning on raw conversation text.
-- **Evaluation**: Accuracy, precision, recall, **F1**, **ROC-AUC**, average precision; confusion matrices and ROC plots under `figures/`.
-
-## Contributing / course submission
-
-Replace placeholder author fields in `setup.py` if you publish the repo. Keep `metrics/` and `figures/` updated when you re-run evaluation so the repository matches the report.
+- `data/README.md`
+- `notebooks/README.md`
+- `docs/README.md`
+- `docs/PROJECT_ANALYSIS.md`
+- `docs/THEORETICAL_RIGOR.md`
