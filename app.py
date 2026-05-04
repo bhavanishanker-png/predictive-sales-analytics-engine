@@ -253,12 +253,53 @@ def tab_architecture() -> None:
         st.caption("Add `figures/hybrid_architecture.png` to display architecture diagram.")
 
 
+def tab_sample_validation() -> None:
+    st.subheader("Sample Validation Demo")
+    st.caption("Quick check on built-in sample conversations.")
+
+    examples = _load_example_texts()
+    expected = {
+        "Clear Win - Enterprise CRM deal": "Win",
+        "Clear Loss - Budget objection": "Loss",
+        "Edge Case - Competitor evaluation": "Win",
+    }
+
+    engagement = st.slider("Validation engagement level", 0.0, 1.0, 0.55, 0.01, key="validation_engagement")
+    if not st.button("Run Sample Validation", type="primary"):
+        st.info("Click the button to run all sample conversations.")
+        return
+
+    rows = []
+    for title, convo in examples.items():
+        result = _mock_prediction(convo, engagement)
+        pred = str(result["predicted_class"])
+        exp = expected.get(title, "Unknown")
+        rows.append(
+            {
+                "sample": title,
+                "expected": exp,
+                "predicted": pred,
+                "probability": round(float(result["probability"]), 4),
+                "risk_level": result["risk_level"],
+                "status": "PASS" if pred == exp else "CHECK",
+            }
+        )
+
+    out = pd.DataFrame(rows)
+    st.dataframe(out, use_container_width=True)
+    pass_count = int((out["status"] == "PASS").sum())
+    st.metric("Samples matching expected label", f"{pass_count}/{len(out)}")
+    st.caption("`CHECK` means review conversation details or adjust expected label for your scenario.")
+
+
 def main() -> None:
     st.set_page_config(page_title="Predictive Sales Analytics Engine", page_icon="🎯", layout="wide")
     st.title("🎯 Predictive Sales Analytics Engine")
     st.caption("Phase 3: Hybrid Gated-Fusion + Explainability + Demo")
 
-    t1, t2, t3, t4 = st.tabs(["Single Prediction", "Batch Prediction", "Model Explainability", "Architecture"])
+    t1, t2, t3, t4, t5 = st.tabs(
+        ["Single Prediction", "Batch Prediction", "Model Explainability", "Architecture", "Sample Validation"]
+    )
     with t1:
         tab_single_prediction()
     with t2:
@@ -267,6 +308,8 @@ def main() -> None:
         tab_explainability()
     with t4:
         tab_architecture()
+    with t5:
+        tab_sample_validation()
 
 
 if __name__ == "__main__":

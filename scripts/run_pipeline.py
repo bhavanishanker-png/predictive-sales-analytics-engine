@@ -14,6 +14,8 @@ from typing import Dict
 
 import numpy as np
 from datasets import load_dataset
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.model_selection import train_test_split
 
 
 def parse_args() -> argparse.Namespace:
@@ -23,7 +25,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--epochs-frozen", type=int, default=5)
     parser.add_argument("--epochs-finetune", type=int, default=3)
-    parser.add_argument("--sample-size", type=int, default=5000, help="Use 100000 for full run")
+    parser.add_argument(
+        "--sample-size",
+        type=int,
+        default=40_000,
+        help="Rows to sample for training (uses full dataset if smaller).",
+    )
     return parser.parse_args()
 
 
@@ -44,10 +51,14 @@ def main() -> None:
 
     print("[1/7] Loading dataset from HuggingFace...")
     ds = load_dataset("DeepMostInnovations/saas-sales-conversations", split="train")
-    if args.sample_size > 0:
-        ds = ds.select(range(min(args.sample_size, len(ds))))
     df = ds.to_pandas()
     print(f"Loaded {len(df):,} rows, {len(df.columns):,} columns")
+    sample_size = min(args.sample_size, len(df))
+    if sample_size < len(df):
+        df = df.sample(n=sample_size, random_state=42).reset_index(drop=True)
+        print(f"Sampled {sample_size:,} rows for training.")
+    else:
+        print(f"Using full dataset ({sample_size:,} rows).")
 
     print("[2/7] Building tabular features...")
     tabular_cols = [
@@ -65,6 +76,9 @@ def main() -> None:
     print("[3/7] Training XGBoost placeholder stage...")
     try:
         import xgboost as xgb
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_tab, y, test_size=0.2, random_state=42, stratify=y
+        )
         model = xgb.XGBClassifier(
             n_estimators=100,
             max_depth=6,
@@ -72,9 +86,22 @@ def main() -> None:
             eval_metric="logloss",
             random_state=42,
         )
-        model.fit(X_tab, y)
+        model.fit(X_train, y_train)
+        y_prob = model.predict_proba(X_test)[:, 1]
+        y_pred = (y_prob >= 0.5).astype(int)
+
+        train_results = {
+            "train_rows": int(len(X_train)),
+            "test_rows": int(len(X_test)),
+            "accuracy": float(accuracy_score(y_test, y_pred)),
+            "f1": float(f1_score(y_test, y_pred)),
+            "auc": float(roc_auc_score(y_test, y_prob)),
+        }
         model.save_model(str(paths["models"] / "xgboost_model.json"))
+        with open(paths["metrics"] / "xgboost_training_metrics.json", "w", encoding="utf-8") as f:
+            json.dump(train_results, f, indent=2)
         print("Saved xgboost_model.json")
+        print("Saved metrics/xgboost_training_metrics.json")
     except Exception as exc:
         print(f"Skipped XGBoost fit due to: {exc}")
 
@@ -92,7 +119,7 @@ def main() -> None:
         "epochs_frozen": args.epochs_frozen,
         "epochs_finetune": args.epochs_finetune,
         "batch_size": args.batch_size,
-        "sample_size": args.sample_size,
+        "dataset_rows": len(df),
     }
     with open(paths["models"] / "feature_config.json", "w", encoding="utf-8") as f:
         json.dump(feature_config, f, indent=2)
