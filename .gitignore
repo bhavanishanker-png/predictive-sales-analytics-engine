@@ -90,3 +90,13 @@ results/
 results/*.npz
 results/*.npy
 results/*.pkl
+
+# Project-generated large artifacts
+models/*.pt
+models/*.bin
+models/*.onnx
+models/xgboost_model.json
+models/tokenizer/*.json
+figures/*.png
+metrics/*_history.json
+metrics/ablation_results.json
