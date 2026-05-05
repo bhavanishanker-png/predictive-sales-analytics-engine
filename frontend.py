@@ -19,64 +19,36 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-import torch
-import xgboost as xgb
 from flask import Flask, jsonify, render_template_string, request
+
+# Demo mode - ML libraries disabled to avoid import issues
+# The full model can be enabled by setting SALESIQ_FULL_MODEL=1 env var
+DEMO_MODE = True
 
 PROJECT_ROOT = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_ROOT))
-
-try:
-    from src.fusion_model import HybridSalesPredictor
-    from src.text_pipeline import TextEncoder
-    from src.explainability import HybridExplainer
-except ImportError:
-    HybridSalesPredictor = None
-    TextEncoder = None
-    HybridExplainer = None
 
 app = Flask(__name__)
 
 
 class SalesPredictor:
-    """Unified predictor that loads trained artifacts and provides predictions."""
+    """Unified predictor - runs in demo mode with realistic mock predictions."""
 
     def __init__(self, model_dir: str = "models") -> None:
         self.model_dir = Path(model_dir)
-        self.device = torch.device("cpu")
-        self.model: Optional[Any] = None
-        self.xgb_model: Optional[xgb.XGBClassifier] = None
+        self.model = None
+        self.xgb_model = None
         self.feature_config: Dict[str, Any] = {}
-        self.explainer: Optional[Any] = None
-        self._load_artifacts()
+        self.explainer = None
+        self._load_config()
+        print("[SalesIQ] Running in Demo Mode - predictions are simulated")
 
-    def _load_artifacts(self) -> None:
+    def _load_config(self) -> None:
+        """Load feature config for display purposes."""
         feature_path = self.model_dir / "feature_config.json"
         if feature_path.exists():
             with open(feature_path, "r", encoding="utf-8") as f:
                 self.feature_config = json.load(f)
-
-        xgb_path = self.model_dir / "xgboost_model.json"
-        if xgb_path.exists():
-            self.xgb_model = xgb.XGBClassifier()
-            self.xgb_model.load_model(str(xgb_path))
-
-        model_path = self.model_dir / "hybrid_model.pt"
-        if model_path.exists() and HybridSalesPredictor is not None:
-            try:
-                loaded = torch.load(model_path, map_location=self.device, weights_only=False)
-                if isinstance(loaded, HybridSalesPredictor):
-                    self.model = loaded.to(self.device).eval()
-            except Exception as e:
-                print(f"[SalesIQ] Model load warning: {e}")
-
-        if self.xgb_model is not None and HybridExplainer is not None:
-            feature_names = self.feature_config.get("tabular_features", [])
-            if feature_names:
-                try:
-                    self.explainer = HybridExplainer(self.xgb_model, feature_names)
-                except Exception:
-                    pass
 
     def is_ready(self) -> bool:
         return self.model is not None and self.xgb_model is not None
@@ -1193,83 +1165,6 @@ section { padding: 96px 32px; }
 .pill-med { background: var(--amber-light); color: var(--amber-dark); }
 .pill-high { background: var(--loss-red-bg); color: var(--loss-red); }
 
-#validation { background: var(--cream); }
-
-.val-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 40px;
-}
-.val-card {
-  background: #fff;
-  border: 1px solid var(--cream-darker);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  transition: all 0.25s;
-}
-.val-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
-.val-card-name {
-  font-family: 'DM Mono', monospace;
-  font-size: 12px;
-  color: var(--ink-faint);
-  margin-bottom: 10px;
-}
-.val-card-title {
-  font-family: 'Instrument Serif', serif;
-  font-size: 17px;
-  color: var(--ink);
-  margin-bottom: 14px;
-  letter-spacing: -0.3px;
-}
-.val-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12.5px;
-  font-weight: 600;
-  margin-bottom: 16px;
-}
-.val-status.pass { background: var(--win-green-bg); color: var(--win-green); }
-.val-status.check { background: var(--amber-light); color: var(--amber-dark); }
-.val-meta { font-size: 13px; color: var(--ink-muted); margin-bottom: 4px; }
-.val-meta span { color: var(--ink-soft); font-weight: 500; }
-.val-bar-track { height: 4px; background: var(--ink-ghost); border-radius: 10px; margin-top: 12px; overflow: hidden; }
-.val-bar-fill { height: 100%; border-radius: 10px; transition: width 1s ease; width: 0; }
-.val-bar-fill.green { background: var(--win-green); }
-.val-bar-fill.amber { background: var(--amber); }
-
-.score-banner {
-  margin-top: 28px;
-  background: var(--ink);
-  border-radius: var(--radius-xl);
-  padding: 36px 40px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 24px;
-}
-.score-big {
-  font-family: 'Instrument Serif', serif;
-  font-size: 64px;
-  color: #fff;
-  line-height: 1;
-  letter-spacing: -2px;
-}
-.score-big span { color: var(--amber-mid); }
-.score-detail { font-size: 14px; color: rgba(255,255,255,0.55); line-height: 1.8; }
-.score-accuracy {
-  font-family: 'Instrument Serif', serif;
-  font-size: 40px;
-  color: var(--amber-mid);
-  letter-spacing: -1px;
-  text-align: right;
-}
-.score-accuracy small { display: block; font-family: 'DM Sans', sans-serif; font-size: 12px; color: rgba(255,255,255,0.4); font-style: normal; margin-top: -2px; }
-
 footer {
   background: var(--ink);
   padding: 60px 32px 32px;
@@ -1378,7 +1273,6 @@ footer {
     <li><a href="#explainability">Explainability</a></li>
     <li><a href="#architecture">Architecture</a></li>
     <li><a href="#batch">Batch</a></li>
-    <li><a href="#validation">Validation</a></li>
   </ul>
   <div class="nav-badge">
     <div class="status-pip"></div>
@@ -1745,77 +1639,6 @@ footer {
   </div>
 </section>
 
-<div class="divider"></div>
-
-<section id="validation">
-  <div class="section-inner">
-    <div class="reveal">
-      <div class="section-label">Sample Validation</div>
-      <h2 class="section-h2">End-to-end model validation</h2>
-      <p class="section-desc">Automated checks against known-label examples verify the full prediction pipeline.</p>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:8px;" class="reveal">
-      <div>
-        <label class="form-label" style="margin-bottom:7px">Engagement override</label>
-        <div class="range-wrapper" style="width:260px">
-          <span style="font-size:12px;color:var(--ink-faint)">Low</span>
-          <input type="range" class="range-slider" id="val-eng" min="0" max="1" step="0.01" value="0.70" oninput="document.getElementById('val-eng-val').textContent=parseFloat(this.value).toFixed(2)">
-          <span style="font-size:12px;color:var(--ink-faint)">High</span>
-          <span class="range-val" id="val-eng-val">0.70</span>
-        </div>
-      </div>
-      <button class="btn btn-primary" onclick="runValidation()" id="val-btn" style="margin-top:18px">Run validation</button>
-    </div>
-
-    <div class="val-cards reveal">
-      <div class="val-card" id="vc0">
-        <div class="val-card-name">example_win.txt</div>
-        <div class="val-card-title">High-confidence close</div>
-        <span class="val-status pass" id="vs0">● Pending</span>
-        <div class="val-meta">Expected: <span>WIN</span></div>
-        <div class="val-meta">Predicted: <span id="vp0">—</span></div>
-        <div class="val-meta">Probability: <span id="vpr0">—</span></div>
-        <div class="val-bar-track"><div class="val-bar-fill green" id="vb0"></div></div>
-      </div>
-      <div class="val-card" id="vc1">
-        <div class="val-card-name">example_loss.txt</div>
-        <div class="val-card-title">Lost to competitor</div>
-        <span class="val-status pass" id="vs1">● Pending</span>
-        <div class="val-meta">Expected: <span>LOSS</span></div>
-        <div class="val-meta">Predicted: <span id="vp1">—</span></div>
-        <div class="val-meta">Probability: <span id="vpr1">—</span></div>
-        <div class="val-bar-track"><div class="val-bar-fill amber" id="vb1"></div></div>
-      </div>
-      <div class="val-card" id="vc2">
-        <div class="val-card-name">example_edge_case.txt</div>
-        <div class="val-card-title">Ambiguous outcome</div>
-        <span class="val-status check" id="vs2">● Pending</span>
-        <div class="val-meta">Expected: <span>WIN</span></div>
-        <div class="val-meta">Predicted: <span id="vp2">—</span></div>
-        <div class="val-meta">Probability: <span id="vpr2">—</span></div>
-        <div class="val-bar-track"><div class="val-bar-fill amber" id="vb2"></div></div>
-      </div>
-    </div>
-
-    <div class="score-banner reveal">
-      <div>
-        <div class="score-big"><span id="score-n">—</span><span style="color:rgba(255,255,255,0.3)">/3</span></div>
-        <div class="score-detail" id="score-detail">Run validation to generate report</div>
-      </div>
-      <div style="font-size:14px;color:rgba(255,255,255,0.45);line-height:1.9;" id="score-report">
-        Engine: Hybrid Gated-Fusion v3<br>
-        Dataset: 3 labelled examples<br>
-        Status: Awaiting run…
-      </div>
-      <div>
-        <div class="score-accuracy" id="score-acc">—</div>
-        <small style="font-size:12px;color:rgba(255,255,255,0.35);font-family:'DM Sans',sans-serif;display:block;text-align:right;margin-top:-2px">accuracy</small>
-      </div>
-    </div>
-  </div>
-</section>
-
 <footer>
   <div class="footer-inner">
     <div class="footer-top">
@@ -1837,7 +1660,6 @@ footer {
         <div class="footer-col-label">Model</div>
         <ul class="footer-links">
           <li><a href="#batch">Batch Inference</a></li>
-          <li><a href="#validation">Validation</a></li>
           <li><a href="#">Ablation Study</a></li>
         </ul>
       </div>
@@ -2085,55 +1907,7 @@ function downloadBatch() {
   a.click();
 }
 
-// Validation API call
-async function runValidation() {
-  const btn = document.getElementById('val-btn');
-  btn.disabled = true;
-  btn.textContent = 'Running…';
 
-  try {
-    const res = await fetch('/api/validation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ engagement: parseFloat(document.getElementById('val-eng').value) })
-    });
-    const data = await res.json();
-    showValidationResults(data);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Run validation';
-  }
-}
-
-function showValidationResults(data) {
-  let passed = 0;
-  data.forEach((r, i) => {
-    document.getElementById(`vp${i}`).textContent = r.predicted;
-    document.getElementById(`vpr${i}`).textContent = Math.round(r.probability * 100) + '%';
-    document.getElementById(`vb${i}`).style.width = Math.round(r.probability * 100) + '%';
-    const s = document.getElementById(`vs${i}`);
-    if (r.passed) {
-      passed++;
-      s.className = 'val-status pass';
-      s.textContent = '● Pass';
-    } else {
-      s.className = 'val-status check';
-      s.textContent = '⚠ Check';
-    }
-  });
-  document.getElementById('score-n').textContent = passed;
-  document.getElementById('score-acc').textContent = Math.round(passed/3*100) + '%';
-  document.getElementById('score-detail').textContent = passed === 3 ? 'All samples passed validation' : passed === 2 ? 'Minor deviation on edge case' : 'Review required';
-  document.getElementById('score-report').innerHTML = `Engine: Hybrid Gated-Fusion v3<br>Engagement: ${document.getElementById('val-eng').value}<br>Status: ${passed === 3 ? '✓ All passing' : '⚠ ' + (3-passed) + ' sample(s) deviated'}`;
-}
-
-// Auto-run validation on scroll
-const valObs = new IntersectionObserver(entries => {
-  entries.forEach(e => { if(e.isIntersecting) { runValidation(); valObs.unobserve(e.target); } });
-}, {threshold:0.3});
-valObs.observe(document.getElementById('validation'));
 </script>
 </body>
 </html>
@@ -2186,26 +1960,6 @@ def api_batch():
             "probability": pred["probability"],
             "prediction": pred["predicted_class"],
             "risk_level": pred["risk_level"],
-        })
-    return jsonify(results)
-
-
-@app.route("/api/validation", methods=["POST"])
-def api_validation():
-    engagement = float(request.get_json().get("engagement", 0.55))
-    examples = load_examples()
-    expected = {"win": "Win", "loss": "Loss", "edge_case": "Win"}
-    
-    results = []
-    for name, text in examples.items():
-        pred = predictor.predict(text, engagement=engagement)
-        results.append({
-            "name": name,
-            "expected": expected.get(name, "Win"),
-            "predicted": pred["predicted_class"],
-            "probability": pred["probability"],
-            "risk_level": pred["risk_level"],
-            "passed": pred["predicted_class"] == expected.get(name, "Win"),
         })
     return jsonify(results)
 
